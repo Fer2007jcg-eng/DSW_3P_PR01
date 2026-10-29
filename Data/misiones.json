@@ -1,0 +1,23 @@
+[
+  {
+    "Id": 1,
+    "Nombre": "Derrotar al dragon",
+    "Dificultad": "Dif\u00EDcil",
+    "RecompensaXP": 1000,
+    "Completada": false
+  },
+  {
+    "Id": 2,
+    "Nombre": "Encontrar la espada legendaria",
+    "Dificultad": "Dif\u00EDcil",
+    "RecompensaXP": 750,
+    "Completada": true
+  },
+  {
+    "Id": 3,
+    "Nombre": "Recolectar hierbas medicinales",
+    "Dificultad": "F\u00E1cil",
+    "RecompensaXP": 100,
+    "Completada": false
+  }
+]
