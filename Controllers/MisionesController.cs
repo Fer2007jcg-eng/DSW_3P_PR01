@@ -2,11 +2,13 @@ using DSW_3P_PR01.DTOs;
 using DSW_3P_PR01.Models;
 using DSW_3P_PR01.Services;
 using Microsoft.AspNetCore.Mvc;
+using Microsoft.AspNetCore.Authorization;
 
 namespace DSW_3P_PR01.Controllers;
 
 [ApiController]
 [Route("api/misiones")]
+[Authorize]
 public class MisionesController : ControllerBase
 {
     private readonly IMisionService _service;
