@@ -1,67 +1,71 @@
-// var builder = WebApplication.CreateBuilder(args);
-
-// // Add services to the container.
-// // Learn more about configuring OpenAPI at https://aka.ms/aspnet/openapi
-// builder.Services.AddOpenApi();
-
-// var app = builder.Build();
-
-// // Configure the HTTP request pipeline.
-// if (app.Environment.IsDevelopment())
-// {
-//     app.MapOpenApi();
-// }
-
-// app.UseHttpsRedirection();
-
-// var summaries = new[]
-// {
-//     "Freezing", "Bracing", "Chilly", "Cool", "Mild", "Warm", "Balmy", "Hot", "Sweltering", "Scorching"
-// };
-
-// app.MapGet("/weatherforecast", () =>
-// {
-//     var forecast =  Enumerable.Range(1, 5).Select(index =>
-//         new WeatherForecast
-//         (
-//             DateOnly.FromDateTime(DateTime.Now.AddDays(index)),
-//             Random.Shared.Next(-20, 55),
-//             summaries[Random.Shared.Next(summaries.Length)]
-//         ))
-//         .ToArray();
-//     return forecast;
-// })
-// .WithName("GetWeatherForecast");
-
-// app.Run();
-
-// record WeatherForecast(DateOnly Date, int TemperatureC, string? Summary)
-// {
-//     public int TemperatureF => 32 + (int)(TemperatureC / 0.5556);
-// }
-
-
-
-
-
-
+using Microsoft.EntityFrameworkCore;
+using DSW_3P_PR01.Data;
 using DSW_3P_PR01.Repositories;
 using DSW_3P_PR01.Services;
+using Microsoft.AspNetCore.Authentication.JwtBearer;
+using Microsoft.IdentityModel.Tokens;
 
 var builder = WebApplication.CreateBuilder(args);
 
 // Registrar los controladores MVC.
 builder.Services.AddControllers();
 
+
 // Configurar Swagger.
 builder.Services.AddEndpointsApiExplorer();
 builder.Services.AddSwaggerGen();
 
-// Registrar el repositorio JSON.
-builder.Services.AddScoped<IMisionRepository, MisionJsonRepository>();
+// Registrar el repositorio SQL.
+builder.Services.AddScoped<IMisionRepository, MisionSqlRepository>();
 
 // Registrar el servicio de misiones.
 builder.Services.AddScoped<IMisionService, MisionService>();
+
+//Configuracion del SQL Server
+builder.Services.AddDbContext<AppDbContext>(options =>
+    options.UseSqlServer(
+        builder.Configuration.GetConnectionString("SqlServerConnection")
+    )
+);
+// Configuración de JWT 
+var jwt = builder.Configuration.GetSection("Jwt");
+var key = Convert.FromBase64String(
+   jwt["Key"] ?? throw new InvalidOperationException(
+       "Falta configurar Jwt:Key"));
+builder.Services
+   .AddAuthentication(JwtBearerDefaults.AuthenticationScheme)
+   .AddJwtBearer(options =>
+   {
+       options.TokenValidationParameters =
+           new TokenValidationParameters
+           {
+               ValidateIssuer = true,
+               ValidIssuer = jwt["Issuer"],
+               ValidateAudience = true,
+               ValidAudience = jwt["Audience"],
+               ValidateLifetime = true,
+               ClockSkew = TimeSpan.Zero,
+               ValidateIssuerSigningKey = true,
+               IssuerSigningKey =
+                   new SymmetricSecurityKey(key)
+           };
+   });
+
+//Configurar política de CORS
+builder.Services.AddCors(options =>
+{
+    options.AddPolicy("QuestLogFrontend", policy =>
+    {
+        policy.WithOrigins(
+                "http://localhost:5500",
+                "http://127.0.0.1:5500"
+            )
+            .AllowAnyHeader()
+            .AllowAnyMethod();
+    });
+});
+
+builder.Services.AddAuthorization();
 
 var app = builder.Build();
 
@@ -74,7 +78,18 @@ if (app.Environment.IsDevelopment())
 
 app.UseHttpsRedirection();
 
+app.UseCors("QuestLogFrontend");
+app.UseAuthentication();
+app.UseAuthorization();
 // Mapear los controladores.
 app.MapControllers();
 
 app.Run();
+
+//ORM
+//dotnet add package Microsoft.EntityFrameworkCore.SqlServer
+//dotnet add package Microsoft.EntityFrameworkCore.Design
+//dotnet tool install --global dotnet-ef --version 10.0.*
+
+//dotnet add package Microsoft.AspNetCore.Authentication.JwtBearer --version "10.0.*"
+
